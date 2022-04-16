@@ -104,22 +104,6 @@ defmodule Phoenix.LiveView.HTMLAlgebra do
     {:block, group(nest(children, :reset))}
   end
 
-  defp to_algebra({:tag_block, "pre", attrs, block, _meta}, context) do
-    children = block_to_algebra(block, %{context | mode: :preserve})
-
-    tag =
-      concat([
-        "<pre",
-        build_attrs(attrs, "", context.opts),
-        ">",
-        nest(children, :reset),
-        "</pre>"
-      ])
-      |> group()
-
-    {:block, tag}
-  end
-
   defp to_algebra({:tag_block, name, attrs, block, _meta}, %{mode: :preserve} = context) do
     children = block_to_algebra(block, context)
 
@@ -176,14 +160,7 @@ defmodule Phoenix.LiveView.HTMLAlgebra do
     {:block, group}
   end
 
-  # Don't format inline tags that are surrounded by texts without whitespaces.
-  # For instance the examples below will not be formatted:
-  #
-  #   text<a class="bar">link</a>text
-  #   <a class="bar">link</a>text
-  #   text<a class="bar">link</a>
-  defp to_algebra({:tag_block, name, attrs, block, %{format?: false}}, context)
-       when name in @inline_elements do
+  defp to_algebra({:tag_block, name, attrs, block, %{preserve?: true}}, context) do
     children = block_to_algebra(block, %{context | mode: :preserve})
     attrs = Enum.reduce(attrs, empty(), &concat([&2, " ", render_attribute(&1, context.opts)]))
 
@@ -192,7 +169,7 @@ defmodule Phoenix.LiveView.HTMLAlgebra do
         "<#{name}",
         attrs,
         ">",
-        children,
+        nest(children, :reset),
         "</#{name}>"
       ])
       |> group()
